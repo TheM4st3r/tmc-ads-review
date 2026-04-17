@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Review — Batch B13 / W17</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: #f5f5f7;
+    color: #1a1a1a;
+    line-height: 1.45;
+    padding-bottom: 120px;
+  }
+
+  /* Sticky top bar */
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: #fff;
+    border-bottom: 1px solid #e0e0e0;
+    padding: 14px 24px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  }
+  .topbar-inner { max-width: 1100px; margin: 0 auto; display: flex; align-items: center; gap: 24px; flex-wrap: wrap; }
+  .topbar h1 { font-size: 15px; font-weight: 700; color: #1a1a1a; }
+  .topbar .subtitle { font-size: 12px; color: #666; margin-top: 2px; }
+  .stats { display: flex; gap: 8px; font-size: 12px; margin-left: auto; flex-wrap: wrap; }
+  .stat { background: #f0f0f0; padding: 5px 10px; border-radius: 6px; font-weight: 600; }
+  .stat.approved { background: #d4edda; color: #155724; }
+  .stat.rejected { background: #f8d7da; color: #721c24; }
+  .stat.commented { background: #fff3cd; color: #856404; }
+  .stat.pending { background: #e2e3e5; color: #383d41; }
+  .progress-track { height: 4px; background: #e5e5e5; border-radius: 2px; overflow: hidden; margin-top: 10px; max-width: 1100px; margin-left: auto; margin-right: auto; }
+  .progress-fill-wrap { display: flex; height: 100%; }
+  .progress-fill-approved { background: #28a745; height: 100%; transition: width 0.2s; }
+  .progress-fill-rejected { background: #dc3545; height: 100%; transition: width 0.2s; }
+
+  /* Day selector */
+  .day-tabs {
+    max-width: 1100px;
+    margin: 20px auto 0;
+    padding: 0 24px;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 10px;
+  }
+  .day-tab {
+    background: #fff;
+    border: 2px solid #e0e0e0;
+    padding: 18px 12px;
+    border-radius: 12px;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.15s;
+    position: relative;
+  }
+  .day-tab:hover { border-color: #999; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.06); }
+  .day-tab.active { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
+  .day-tab .day-label { font-size: 16px; font-weight: 700; margin-bottom: 3px; }
+  .day-tab .day-date { font-size: 11px; opacity: 0.7; margin-bottom: 6px; }
+  .day-tab .day-cluster { font-size: 11px; font-weight: 500; opacity: 0.8; line-height: 1.3; }
+  .day-tab .day-progress {
+    margin-top: 10px;
+    display: flex;
+    justify-content: center;
+    gap: 5px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .day-tab .progress-chip {
+    padding: 2px 7px;
+    border-radius: 4px;
+  }
+  .day-tab .chip-approved { background: rgba(40, 167, 69, 0.15); color: #28a745; }
+  .day-tab .chip-rejected { background: rgba(220, 53, 69, 0.15); color: #dc3545; }
+  .day-tab .chip-commented { background: rgba(255, 193, 7, 0.2); color: #b8860b; }
+  .day-tab.active .chip-approved { background: rgba(40, 167, 69, 0.3); color: #7dd48f; }
+  .day-tab.active .chip-rejected { background: rgba(220, 53, 69, 0.3); color: #ff8a95; }
+  .day-tab.active .chip-commented { background: rgba(255, 193, 7, 0.3); color: #ffe680; }
+
+  /* Status filters */
+  .filters {
+    max-width: 1100px;
+    margin: 20px auto 0;
+    padding: 0 24px;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .filters .filter-label {
+    font-size: 12px;
+    color: #888;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-right: 4px;
+  }
+  .filter-btn {
+    background: #fff;
+    border: 1px solid #d0d0d0;
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    color: #555;
+    transition: all 0.15s;
+  }
+  .filter-btn:hover { background: #f0f0f0; }
+  .filter-btn.active { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
+
+  /* Day section */
+  .container { max-width: 1100px; margin: 0 auto; padding: 24px; }
+  .day-header {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #1a1a1a;
+  }
+  .day-header h2 { font-size: 20px; font-weight: 700; }
+  .day-header .cluster-tag { font-size: 13px; color: #666; font-weight: 500; }
+  .day-header .date { font-size: 13px; color: #888; margin-left: auto; }
+
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: #888;
+    font-size: 14px;
+  }
+
+  /* Ad card */
+  .ad-card {
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    margin-bottom: 12px;
+    padding: 20px 24px;
+    transition: all 0.2s;
+    position: relative;
+    border-left: 4px solid transparent;
+  }
+  .ad-card.approved { border-left-color: #28a745; background: #f8fef9; }
+  .ad-card.rejected { border-left-color: #dc3545; background: #fff8f8; }
+  .ad-card.has-comment:not(.approved):not(.rejected) { border-left-color: #ffc107; }
+  .ad-card.hidden { display: none; }
+
+  .ad-header { display: flex; align-items: baseline; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+  .ad-id { font-size: 13px; color: #888; font-weight: 600; letter-spacing: 0.02em; }
+  .ad-title { font-size: 17px; font-weight: 700; color: #1a1a1a; }
+  .ad-badges { display: flex; gap: 6px; margin-left: auto; }
+  .badge {
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+  .badge.override { background: #e3f2fd; color: #1565c0; }
+  .badge.winner { background: #fff3cd; color: #856404; }
+  .badge.fill { background: #f0f0f0; color: #666; }
+
+  .ad-fields { display: grid; gap: 10px; margin-bottom: 16px; font-size: 14px; }
+  .ad-field { display: grid; grid-template-columns: 110px 1fr; gap: 12px; align-items: baseline; }
+  .field-label { font-weight: 600; color: #666; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .field-value { color: #333; line-height: 1.5; }
+  .field-value.hook { font-style: italic; color: #1a1a1a; background: #fafafa; padding: 8px 12px; border-radius: 6px; border-left: 3px solid #1a1a1a; }
+  .field-value.execution { background: #fafafa; padding: 10px 12px; border-radius: 6px; }
+
+  /* Action bar */
+  .action-bar {
+    display: flex;
+    gap: 8px;
+    padding-top: 14px;
+    border-top: 1px solid #efefef;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .action-btn {
+    border: 1px solid #d0d0d0;
+    background: #fff;
+    padding: 7px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .action-btn:hover { transform: translateY(-1px); box-shadow: 0 2px 4px rgba(0,0,0,0.08); }
+  .action-btn.approve { border-color: #28a745; color: #28a745; }
+  .action-btn.approve.active { background: #28a745; color: #fff; }
+  .action-btn.reject { border-color: #dc3545; color: #dc3545; }
+  .action-btn.reject.active { background: #dc3545; color: #fff; }
+  .action-btn.comment { border-color: #ffc107; color: #b8860b; }
+  .action-btn.comment.active { background: #ffc107; color: #5a4100; border-color: #ffc107; }
+  .action-btn.reset { border-color: #aaa; color: #666; margin-left: auto; font-size: 12px; padding: 5px 10px; }
+
+  .status-indicator { margin-left: 8px; font-size: 13px; font-weight: 600; }
+  .status-indicator.approved { color: #28a745; }
+  .status-indicator.rejected { color: #dc3545; }
+
+  .comment-box { margin-top: 12px; display: none; }
+  .comment-box.visible { display: block; }
+  .comment-box textarea {
+    width: 100%;
+    min-height: 80px;
+    padding: 10px 12px;
+    border: 1px solid #d0d0d0;
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 14px;
+    resize: vertical;
+    line-height: 1.5;
+  }
+  .comment-box textarea:focus { outline: none; border-color: #1a1a1a; }
+  .comment-box .comment-hint { font-size: 11px; color: #888; margin-top: 4px; }
+
+  /* Bottom export bar */
+  .bottom-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #fff;
+    border-top: 1px solid #e0e0e0;
+    padding: 14px 24px;
+    box-shadow: 0 -2px 6px rgba(0,0,0,0.04);
+    z-index: 100;
+  }
+  .bottom-bar-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .bottom-bar .summary { font-size: 13px; color: #555; }
+  .export-btn {
+    background: #1a1a1a;
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .export-btn:hover { background: #000; transform: translateY(-1px); }
+  .export-btn.copy { background: #fff; color: #1a1a1a; border: 1px solid #1a1a1a; }
+  .export-btn.ml-auto { margin-left: auto; }
+
+  .reset-all-btn {
+    background: #fff;
+    color: #888;
+    border: 1px solid #d0d0d0;
+    padding: 8px 14px;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+
+  @media (max-width: 700px) {
+    .day-tabs { grid-template-columns: repeat(2, 1fr); }
+    .ad-field { grid-template-columns: 1fr; gap: 4px; }
+    .field-label { font-size: 11px; }
+    .stats { margin-left: 0; width: 100%; }
+    .topbar-inner { flex-direction: column; align-items: flex-start; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div>
+      <h1>Review — Batch B13 / Week 2026-W17</h1>
+      <div class="subtitle">60 ads · 20/04 a 24/04/2026 · Auto-save ativo</div>
+    </div>
+    <div class="stats">
+      <span class="stat approved">✓ <span id="count-approved">0</span> aprovados</span>
+      <span class="stat rejected">✗ <span id="count-rejected">0</span> rejeitados</span>
+      <span class="stat commented">💬 <span id="count-commented">0</span> c/ comentário</span>
+      <span class="stat pending"><span id="count-pending">60</span> pendentes</span>
+    </div>
+  </div>
+  <div class="progress-track">
+    <div class="progress-fill-wrap">
+      <div class="progress-fill-approved" id="progress-approved" style="width: 0%"></div>
+      <div class="progress-fill-rejected" id="progress-rejected" style="width: 0%"></div>
+    </div>
+  </div>
+</div>
+
+<div class="day-tabs" id="day-tabs"></div>
+
+<div class="filters">
+  <span class="filter-label">Filtrar:</span>
+  <button class="filter-btn active" data-filter="all">Todos</button>
+  <button class="filter-btn" data-filter="pending">Pendentes</button>
+  <button class="filter-btn" data-filter="approved">Aprovados</button>
+  <button class="filter-btn" data-filter="rejected">Rejeitados</button>
+  <button class="filter-btn" data-filter="commented">Com comentário</button>
+  <button class="filter-btn" data-filter="override">Override</button>
+  <button class="filter-btn" data-filter="winner">Winner Var</button>
+</div>
+
+<div class="container" id="ads-container"></div>
+
+<div class="bottom-bar">
+  <div class="bottom-bar-inner">
+    <div class="summary" id="bottom-summary">0 de 60 revisados</div>
+    <button class="reset-all-btn" onclick="resetAll()">🔄 Resetar tudo</button>
+    <button class="export-btn copy ml-auto" onclick="copyFeedback()">📋 Copiar feedback</button>
+    <button class="export-btn" onclick="exportMarkdown()">⬇ Exportar .md</button>
+  </div>
+</div>
+
+<script>
+// ============ ESCAPE HTML (security) ============
+function escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+const ADS = [
+  // ========== SEGUNDA (B13.1) — Cluster 3 Cognitive Decline ==========
+  { id: 1, day: 1, dayLabel: "Segunda", date: "20/04/26", cluster: "Cluster 3 Cognitive Decline", type: "winner", title: "Winner Variation: Animated Podcast Showdown", angle: "B&B confronta Ryze (idêntico ao winner original)", hookCopy: "\"Hi, I'm mushroom coffee.\" / \"Damn. You're weak coffee.\" (verbatim)", hookVisual: "Estúdio de podcast 3D Pixar. B&B (musculoso, óculos escuros, corrente de ouro) atrás da mesa; Ryze (menor, frágil) do outro lado. B&B joga um microfone na cara de Ryze no punch moment [00:03].", format: "3D Animated (Winner Variation — Var #1)", speaker: "B&B alpha + Ryze weak (characters preserved from winner)", execution: "Copy VERBATIM do winner (237 palavras, 87s). Setting = podcast studio moderno, iluminação neon, painéis acústicos. Preserva estrutura Hook→Attack→Mechanism(aromatase)→Extension→Callback→Bridge→Proof→Ingredients→Guarantee→Offer. Sacred Copy Rule. CTA padrão." },
+  { id: 2, day: 1, dayLabel: "Segunda", date: "20/04/26", cluster: "Cluster 3 Cognitive Decline", type: "winner", title: "Winner Variation: Live-Action Mascot Costume", angle: "B&B confronta Ryze (idêntico ao winner original)", hookCopy: "\"Hi, I'm mushroom coffee.\" / \"Damn. You're weak coffee.\" (verbatim, voice-over ou dublado com lip-sync)", hookVisual: "Cozinha real. Cara fortão musculoso REAL em fantasia de coffee bag B&B. Cara magrelo REAL em fantasia de coffee bag Ryze. B&B EMPURRA Ryze pra fora do frame no punch [00:03].", format: "Live-Action Mascot (Winner Variation — Var #2)", speaker: "2 humanos REAIS em fantasias", execution: "Copy VERBATIM do winner (237 palavras, 87s). Câmera handheld, feel autêntico caseiro. Preserva toda a estrutura. Sacred Copy Rule. CTA padrão." },
+  { id: 3, day: 1, dayLabel: "Segunda", date: "20/04/26", cluster: "Cluster 3 Cognitive Decline", type: "fill", title: "ACQ Native Image: Confissão de Esquecimento Masculino", angle: "Homem 48 anos confessa perda progressiva de memória", hookCopy: "\"Aos 48 anos eu passei 20 minutos procurando meus óculos. Eles estavam na minha cabeça.\"", hookVisual: "Close-up de homem 48 anos com expressão confusa + óculos visíveis na testa + pilha de medicamentos genéricos (nootropicos, omega-3, ginkgo) na mesa ao fundo", format: "Long-form Native Image — Format A, Male First-Person Narrator, Direct-to-Product CTA, Medical Shock creative", speaker: "Homem 48 anos (narrator em primeira pessoa)", execution: "Long-form narrative 1500-3000 palavras. Narrativa shame→desesperação→descoberta→transformação. Cenas mostradas, não contadas (esquecendo palavras no meio de reunião, não lembrando nome do filho no almoço de domingo, esposa perguntando 'onde estão as chaves' pela 5a vez). Descoberta: não é Alzheimer — é cortisol destruindo hipocampo + deficiência de Lion's Mane. TMC como solução que aborda causa (Ashwa cortisol + Lion's Mane NGF/BDNF). P.S. incluindo garantia + urgência. CTA padrão." },
+  { id: 4, day: 1, dayLabel: "Segunda", date: "20/04/26", cluster: "Cluster 3 Cognitive Decline", type: "fill", title: "ACQ Native Image: Esposa Vendo Marido Desaparecer", angle: "Esposa observa declínio cognitivo do marido", hookCopy: "\"Meu marido me fez a mesma pergunta três vezes em 20 minutos hoje. Eu tô com medo.\"", hookVisual: "Mulher 45 anos com lágrimas nos olhos segurando um bilhete manuscrito. Ao fundo, marido lendo jornal sem perceber.", format: "Long-form Native Image — Format A, Wife/Partner Perspective, Direct-to-Product CTA, Emotional Devastation creative", speaker: "Esposa 45 anos (narrator em primeira pessoa)", execution: "Long-form narrative 1500-3000 palavras. Wife POV — marido mudou nos últimos 2 anos. Cenas: pergunta repetida sobre almoço, perdendo conversa no meio, olhando TV sem reagir. Dela o breaking point — médica ir ao médico. Médico diagnostica cortisol alto crônico destruindo função cognitiva. TMC como cortisol-blocker natural. Linha: 'Ele voltou pra mim. E agora ele lembra do nosso aniversário pela primeira vez em 3 anos.' CTA padrão." },
+  { id: 5, day: 1, dayLabel: "Segunda", date: "20/04/26", cluster: "Cluster 3 Cognitive Decline", type: "override", title: "Parasitas Cerebrais [OVERRIDE AD #1]", angle: "Sinais de que seu cérebro está desligando aos poucos", hookCopy: "\"3 sinais de que seu cérebro está desligando aos poucos (e como reverter antes que seja tarde demais)\"", hookVisual: "Headline + Close-up de parasita cerebral (verme) se movimentando dentro de modelo transparente de cérebro", format: "EGC (LONG 90s+)", speaker: "Parasitologista/Neurologista especialista em infecções cerebrais", execution: "O parasitologista segurando o modelo transparente de cérebro com verme dentro apresenta o anúncio inteiro. Explica como 'parasitas cognitivos' (toxinas, inflamação, cortisol) literalmente 'comem' o cérebro aos poucos. Conecta os 3 sinais (esquecimento, falta de foco, confusão) aos 'vermes metabólicos' que destroem neurônios. TMC = antiparasitário cerebral. CTA padrão." },
+  { id: 6, day: 1, dayLabel: "Segunda", date: "20/04/26", cluster: "Cluster 3 Cognitive Decline", type: "override", title: "Testosterona Neuroprotetora [OVERRIDE AD #2]", angle: "Testosterona PROTEGE o cérebro", hookCopy: "\"Você sabia que a testosterona PROTEGE seu cérebro contra o Alzheimer?\"", hookVisual: "Homem de jaleco, sentado numa mesa, com dois cérebros lado a lado. Esquerda: cérebro podre com fita 'No T'. Direita: cérebro saudável com fita 'High T'", format: "EGC (MID 60s)", speaker: "Neurologista/Endocrinologista que trata declínio cognitivo masculino", execution: "O médico sentado à mesa com os dois cérebros apresenta o anúncio inteiro. Aponta para o cérebro 'No T' explicando como baixa testosterona deixa neurônios vulneráveis ao Alzheimer. Depois aponta para 'High T' mostrando como testosterona é literalmente neuroprotetora. TMC = escudo hormonal para o cérebro. CTA padrão." },
+  { id: 7, day: 1, dayLabel: "Segunda", date: "20/04/26", cluster: "Cluster 3 Cognitive Decline", type: "fill", title: "Parasita Metabólico Devorando Cérebro (Disgusting POV)", angle: "Inflamação crônica = parasita metabólico literalmente \"come\" neurônios", hookCopy: "\"Se você tá esquecendo onde deixou as chaves, esse parasita metabólico pode estar devorando seu cérebro nesse exato momento.\"", hookVisual: "Close-up extremo e nojento de parasita/verme mexendo dentro de modelo transparente de cérebro. Câmera mergulha pra dentro do cérebro mostrando 'bichos metabólicos' atacando neurônios em 3D.", format: "EGC (SHORT 20-30s, Disgusting POV archetype — GAP exploration)", speaker: "Neurologista/Patologista m/40-50/expert", execution: "Hook nojento abre scroll. Patologista explica que inflamação crônica + cortisol alto literalmente corrói membrana neuronal. Usa metáfora do parasita como metáfora biológica. TMC = Ashwa (block cortisol) + Lion's Mane (reparar neurônios) + Chaga (antioxidante). CTA padrão." },
+  { id: 8, day: 1, dayLabel: "Segunda", date: "20/04/26", cluster: "Cluster 3 Cognitive Decline", type: "fill", title: "Cortisol: Três Sintomas, Uma Só Causa (HS-05 + HS-11)", angle: "3 sintomas distintos apontam pra mesma raiz: cortisol destruindo cérebro", hookCopy: "\"Esquecendo palavras no meio da frase? Isso é cortisol. Perdendo chaves todo dia? Cortisol. Café não funciona mais? Cortisol.\"", hookVisual: "Speaker aponta rapidamente pra 3 B-rolls em sequência: [1] homem pausando meio-frase em reunião, [2] man mãos na cabeça procurando chaves, [3] homem bebendo 3ª xícara de café sem efeito. Edit rápido, 1s por cena.", format: "Talking-head w/ fast B-roll cuts (SHORT 20s, HS-05 Did you know + HS-11 enumeration)", speaker: "Endocrinologista m/40/expert", execution: "Médico conecta 3 sintomas aparentemente distintos a cortisol alto cronicamente destruindo hipocampo + prefrontal. Reveal: 'A Ashwagandha reduz cortisol em 27.9% em 60 dias — o que restaura memória, foco e energia sem cafeína.' TMC = dose clínica de Ashwa num café que você já toma. CTA padrão." },
+  { id: 9, day: 1, dayLabel: "Segunda", date: "20/04/26", cluster: "Cluster 3 Cognitive Decline", type: "fill", title: "Eu Sou Seu Cérebro (Animated Mascot)", angle: "Cérebro falante mascote lecturando o dono", hookCopy: "\"Sou seu cérebro. E aqui está o motivo pelo qual eu tô desligando depois dos 40.\"", hookVisual: "Cérebro 3D Pixar-style com olhos cansados e boca, flutuando no ar. Expressão frustrada. Luz ambiente azul (tipo 'pensando').", format: "3D Animation (MID 60s, Animated Mascot Speaker — cross-niche transfer from Fatty Liver frog + Rennora banana)", speaker: "Cérebro antropomorfizado, voz masculina cansada/carismática", execution: "Cérebro fala em primeira pessoa como tá sendo atacado: 'Todo dia você me enche de cortisol com seu trabalho estressante. Todo dia você me rouba de Lion's Mane. Todo dia você me obriga a 5 xícaras de café que me destroem.' Pede pro dono salvar ele com TMC. Menciona que um único café com Lion's Mane + Ashwa + Cordyceps = cérebro reparado. CTA padrão." },
+  { id: 10, day: 1, dayLabel: "Segunda", date: "20/04/26", cluster: "Cluster 3 Cognitive Decline", type: "fill", title: "Nootropicos Não Resolvem (HS-03 Contrarian)", angle: "Nootropicos genéricos atacam sintoma, não causa", hookCopy: "\"Nootropicos são ótimos, MAS se eles consertassem brain fog, todo CEO ia ser gênio. Aqui está o que realmente funciona.\"", hookVisual: "Speaker segura bottle de nootropico genérico (Alpha Brain/Neuriva) na mão esquerda e xícara de TMC na direita. Joga o nootropico pra fora do frame ao dizer 'não funciona'.", format: "Talking-head w/ product demo (MID 60s, HS-03 contrarian + HS-12 reframe)", speaker: "Endocrinologista m/40/expert especialista em cognição masculina", execution: "Médico explica que nootropicos aumentam dopamine TEMPORARIAMENTE sem tocar em cortisol ou inflamação — as causas reais. TMC ataca as 3 causas: Ashwa (cortisol), Lion's Mane (NGF/BDNF neurônio regen), Cordyceps (mitocondrial). 'Não é estimulante. É restauração.' CTA padrão." },
+  { id: 11, day: 1, dayLabel: "Segunda", date: "20/04/26", cluster: "Cluster 3 Cognitive Decline", type: "fill", title: "RTG Video: O Cortisol Como Causa Raiz (Mechanism Education)", angle: "Para quem já tentou tudo e não funcionou", hookCopy: "\"Se você já tentou omega-3, ginkgo, mindfulness — e nada funciona — é porque o problema não é no cérebro. É no cortisol.\"", hookVisual: "Speaker aponta pra cabeça (cérebro), depois DESCE a mão pra glândula suprarrenal num diagrama corporal. Animação overlay mostra cortisol subindo dos rins e 'comendo' hipocampo.", format: "EGC w/ animated diagram overlay (MID 60s, Retargeting Cat #3 Mechanism Education)", speaker: "Endocrinologista m/50/expert", execution: "Para viewers que viram AD #5 ou #6 e não converteram. Vai mais fundo no mecanismo: cortisol crônico→hipocampo atrofia→memória destruída. Posiciona Ashwa como ÚNICA intervenção que aborda a raiz. TMC entrega Ashwa + cofatores (Lion's Mane, Cordyceps) pra reparação pós-cortisol. CTA padrão." },
+  { id: 12, day: 1, dayLabel: "Segunda", date: "20/04/26", cluster: "Cluster 3 Cognitive Decline", type: "fill", title: "RTG Image: Day 1 → Day 30 Cognitive Timeline", angle: "Transformação cognitiva em 30 dias", hookCopy: "\"Day 1: Forgot my keys. Day 30: Remembered my anniversary for the first time in 3 years.\"", hookVisual: "Static image dividido 2 metades. Esquerda (Day 1): homem 48 procurando chaves, expressão confusa. Direita (Day 30): same homem entregando flores pra esposa, sorrindo. Overlay do texto 'Day 1 → Day 30'.", format: "Static Image — Format B Timeline (Retargeting)", speaker: "N/A (image only, for retargeting)", execution: "Timeline legendada: Day 1 (forgot keys), Day 7 (slept through night), Day 14 (remembered colleague's name), Day 30 (anniversary + specific story). TMC embaixo com CTA padrão." },
+
+  // ========== TERÇA (B13.2) — Cluster 4 Belly Fat / Man Boobs ==========
+  { id: 13, day: 2, dayLabel: "Terça", date: "21/04/26", cluster: "Cluster 4 Belly Fat / Man Boobs", type: "winner", title: "Winner Variation: 3D News Bulletin", angle: "B&B confronta Ryze (idêntico ao winner)", hookCopy: "\"Hi, I'm mushroom coffee.\" / \"Damn. You're weak coffee.\" (verbatim)", hookVisual: "Bancada de telejornal 3D Pixar com mapa atrás + chyron 'MUSHROOM COFFEE SCANDAL EXPOSED'. B&B é âncora confiante atrás da bancada. Ryze aparece via tela secundária (Skype-style). B&B quebra o vidro do monitor no punch [00:03].", format: "3D Animated (Winner Variation — Var #4)", speaker: "B&B alpha (âncora) + Ryze weak (réu via call-in)", execution: "Copy VERBATIM (237 palavras, 87s). Cadência de âncora de TV. Chyron rolando embaixo. Sacred Copy Rule. CTA padrão." },
+  { id: 14, day: 2, dayLabel: "Terça", date: "21/04/26", cluster: "Cluster 4 Belly Fat / Man Boobs", type: "winner", title: "Winner Variation: 3D Cooking Show", angle: "B&B confronta Ryze (idêntico ao winner)", hookCopy: "\"Hi, I'm mushroom coffee.\" / \"Damn. You're weak coffee.\" (verbatim)", hookVisual: "Cozinha profissional tipo MasterChef, 3D Pixar. B&B é chef com avental e chapéu. Ryze é ingrediente 'ruim' sendo examinado. B&B joga Ryze direto na lixeira da cozinha no punch [00:03].", format: "3D Animated (Winner Variation — Var #9)", speaker: "B&B chef + Ryze 'ingrediente ruim'", execution: "Copy VERBATIM (237 palavras, 87s). Entregue como crítica culinária. Paneiras visíveis, drama MasterChef. Sacred Copy Rule. CTA padrão." },
+  { id: 15, day: 2, dayLabel: "Terça", date: "21/04/26", cluster: "Cluster 4 Belly Fat / Man Boobs", type: "fill", title: "ACQ Native Image: O Homem Que Parou de Vestir Branco", angle: "Homem 45+ evita camisa branca por causa de man boobs", hookCopy: "\"Eu parei de vestir camisa branca aos 43. Não era gordura. Era estrogênio.\"", hookVisual: "Homem 43 anos segurando uma camisa branca amassada em uma mão e pegando uma camisa preta da pilha com a outra — expressão envergonhada. Espelho ao fundo mostrando man boobs marcando.", format: "Long-form Native Image — Format A, Male First-Person Narrator, Direct-to-Product CTA, Body Shame creative", speaker: "Homem 43 anos (first-person)", execution: "Long-form 1500-3000 palavras. Confissão vulnerável: como evitava piscinas, cumprimentos com abraço, luz natural. Descoberta via médico: aromatase converte T→E, criando tecido mamário. TMC = aromatase inhibitor natural (Shilajit + Zinc) + T boost (Tongkat). Transformação: voltou a usar branco. CTA padrão." },
+  { id: 16, day: 2, dayLabel: "Terça", date: "21/04/26", cluster: "Cluster 4 Belly Fat / Man Boobs", type: "fill", title: "ACQ Native Image: Esposa Vendo Marido Se Apagar", angle: "Wife perspective — marido perdendo a masculinidade silenciosamente", hookCopy: "\"Ele parou de me beijar sem camisa aos 44. Achei que era estresse. Era pior.\"", hookVisual: "Mulher 40 sentada na cama, abraçando travesseiro, olhando vazia. Camisa do marido (branca) pendurada numa cadeira sem ser usada há dias.", format: "Long-form Native Image — Format A, Wife/Partner Perspective, Direct-to-Product CTA, Emotional Devastation creative", speaker: "Esposa 40 (first-person)", execution: "Long-form 1500-3000 palavras. Wife POV — marido antes confiante, agora esconde o corpo. Dela o insight: não é gordura comum, é estrogênio desbalanceado. Levou ele ao médico. Descoberta: aromatase + cortisol. TMC restaura. Voltou a tirar camisa na praia. CTA padrão." },
+  { id: 17, day: 2, dayLabel: "Terça", date: "21/04/26", cluster: "Cluster 4 Belly Fat / Man Boobs", type: "override", title: "Camisa Branca [OVERRIDE AD #3]", angle: "Homens com peito grande evitam camisa branca", hookCopy: "\"Man boobs fazem você evitar camisas brancas? O problema não é gordura — é estrogênio.\"", hookVisual: "Headline + B-Roll de homem de sutiã vestindo camisa branca com peitos marcando", format: "UGC Confessional (MID 60s)", speaker: "Homem 45-55 que passou pelo problema (ex-gordo ou ex-man boobs)", execution: "O cara conta SUA história usando o visual do homem de sutiã. Confessa como evitava camisas claras, usava camisa por baixo, até descobrir que não era gordura — era estrogênio dominance. Mostra como resolveu com TMC (aromatase blocker). 'Se você tá evitando branco, o problema não é onde você pensa.' CTA padrão." },
+  { id: 18, day: 2, dayLabel: "Terça", date: "21/04/26", cluster: "Cluster 4 Belly Fat / Man Boobs", type: "override", title: "Band-Aid nos Mamilos [OVERRIDE AD #4]", angle: "Mamilos mais sensíveis que os da esposa", hookCopy: "\"Quando seus mamilos estão mais sensíveis que os da sua esposa — tem algo errado acontecendo com você!\"", hookVisual: "Headline + B-Roll de homem peludo colocando band-aid nos mamilos antes de vestir camisa", format: "UGC Confessional (MID 60s)", speaker: "Homem 40-50 que teve ginecomastia/sensibilidade extrema", execution: "O cara demonstra colocando band-aid nos próprios mamilos enquanto conta sua experiência. Explica como chegou ao ponto de não conseguir nem abraçar a esposa sem dor. Revela que era estrogênio alto convertendo testosterona. TMC resolveu bloqueando a aromatase. 'Se você tá sentindo isso, não é normal.' CTA padrão." },
+  { id: 19, day: 2, dayLabel: "Terça", date: "21/04/26", cluster: "Cluster 4 Belly Fat / Man Boobs", type: "fill", title: "Sou Sua Barriga Cervejeira (Animated Mascot)", angle: "Barriga falante mascote conversando com o dono", hookCopy: "\"Sou sua barriga cervejeira. E aqui está o motivo pelo qual eu tô crescendo mesmo quando você corta açúcar.\"", hookVisual: "Barriga 3D Pixar antropomorfizada com olhos e boca — balançando, expressão sarcástica. Cara sem camisa aparece por trás dela confuso.", format: "3D Animation (SHORT 25s, Animated Mascot Speaker)", speaker: "Barriga antropomorfizada, voz masculina zombeteira", execution: "Barriga explica que não é gordura comum — é tecido mamário induzido por estrogênio alto (aromatase convertendo T em E). Menciona que cortar açúcar sem tocar no hormônio é inútil. Pede pra tomar TMC. 'Me deixe ir embora.' CTA padrão." },
+  { id: 20, day: 2, dayLabel: "Terça", date: "21/04/26", cluster: "Cluster 4 Belly Fat / Man Boobs", type: "fill", title: "If Your Chest Looks Like This (Dramatic Presentation)", angle: "Dramatic Presentation of the Problem (voice-criteria exemplo canônico)", hookCopy: "\"Se seu peito parece com isso e sua barriga parece com isso, aqui está o que você precisa fazer pra consertar.\"", hookVisual: "Dois homens sem camisa lado a lado. Speaker 1 (50yo+, corpo atlético, definido) aperta/apalpa os peitos do speaker 2 (mesma idade, com man boobs). Quando diz 'aqui está o que você precisa fazer' esfrega um creme amarelo pegajoso (mel) na barriga e peitos do cara.", format: "Dramatic Presentation + Body Hack (SHORT 20-25s)", speaker: "2 homens 50+ (um atlético como expert, um com man boobs como 'paciente')", execution: "Hook visual = Efeito WTF completo (congruência + imprevisibilidade + múltiplos loops). Speaker explica que man boobs + belly fat = dupla aromatase + cortisol. Não é dieta — é hormônio. TMC ataca ambos. 'Não é mel. É aromatase blocker + cortisol blocker em café.' CTA padrão." },
+  { id: 21, day: 2, dayLabel: "Terça", date: "21/04/26", cluster: "Cluster 4 Belly Fat / Man Boobs", type: "fill", title: "5 Sinais Não-Óbvios de Estrogênio Alto (HS-11 + XN-007)", angle: "Sintomas 'não-óbvios' que ninguém conecta a estrogênio", hookCopy: "\"5 sinais não-óbvios de que seu estrogênio tá alto — e que não têm NADA a ver com man boobs.\"", hookVisual: "Speaker enumera rapidamente tipo lista. B-rolls de cada sinal: [1] homem com braço flácido, [2] homem chorando assistindo filme romântico, [3] homem com barriga pooch debaixo da camisa, [4] homem com libido baixa olhando esposa, [5] homem acordando cansado.", format: "Talking-head + B-roll enumeration (MID 45s, HS-11 structure, XN-007 Melissa elfie transfer)", speaker: "Endocrinologista m/40/expert em hormônios masculinos", execution: "Lista 5 sintomas não-óbvios (braço mole, mood swings, barriga que não some, libido baixa, fadiga matinal). Conecta todos a aromatase/estrogênio. TMC = 1 café com zinco + shilajit + tongkat resolve. CTA padrão." },
+  { id: 22, day: 2, dayLabel: "Terça", date: "21/04/26", cluster: "Cluster 4 Belly Fat / Man Boobs", type: "fill", title: "Aromatase: O Inimigo Silencioso (LONG EGC)", angle: "Mecanismo educacional profundo aromatase", hookCopy: "\"99% dos homens não têm um problema de testosterona baixa. Eles têm um problema de estrogênio alto.\"", hookVisual: "Speaker em consultório médico. Diagrama animado grande mostrando T sendo convertido em E pela enzima aromatase. Split-screen: homem com belly fat (aromatase ativa) vs homem atlético (aromatase bloqueada).", format: "EGC w/ animated mechanism overlay (LONG 90-120s, HS-13 contrarian insider)", speaker: "Endocrinologista m/50/expert (Dr. Andreas Boettcher-style authority)", execution: "Deep dive em aromatase: tecido adiposo produz enzima, enzima converte T em E, estrogênio causa belly + man boobs + libido crash. TRT piora (mais T → mais conversão). Solução = BLOQUEAR aromatase. TMC = Zinc + Shilajit + Ashwa (natural aromatase inhibitors). Testimonials. CTA padrão." },
+  { id: 23, day: 2, dayLabel: "Terça", date: "21/04/26", cluster: "Cluster 4 Belly Fat / Man Boobs", type: "fill", title: "RTG Video: Symptom-Stack Education", angle: "Multi-sintomas apontam pra mesmo hormônio", hookCopy: "\"Barriga que não some + peitos flácidos + libido no chão + braço mole = 4 sintomas, 1 causa.\"", hookVisual: "Speaker aponta rapidamente pra 4 sintomas visuais em sequência. Depois para, olha pra câmera: '4 sintomas. 1 hormônio. Estrogênio.'", format: "EGC (MID 45s, Retargeting Cat #7 Symptom-Stack Education)", speaker: "Endocrinologista m/40-50/expert", execution: "Para viewers que viram AD #17 ou #18 mas não converteram. Conecta 4 sintomas aparentemente distintos a aromatase + T→E conversion. TMC = 1 café resolve os 4. Urgência: 'cada dia que passa sem bloquear aromatase, mais T você perde.' CTA padrão." },
+  { id: 24, day: 2, dayLabel: "Terça", date: "21/04/26", cluster: "Cluster 4 Belly Fat / Man Boobs", type: "fill", title: "RTG Image: Bold Static — Shock Headline", angle: "Shock static pra retargeting", hookCopy: "\"Seu corpo está fabricando ESTROGÊNIO todos os dias que você não faz isso.\"", hookVisual: "Close-up de homem sem camisa com man boobs pronunciados. Overlay: '40% OFF — fix it or keep hiding under black shirts.' Seta apontando pros peitos.", format: "Static Image — Format B Bold Static (Retargeting)", speaker: "N/A (image only)", execution: "Imagem confronta diretamente. Headline bold. CTA com 40% off + estoque limitado. Pro quem viu ads principais e não converteu — confronto direto. CTA padrão." },
+
+  // ========== QUARTA (B13.3) — Cluster 4 High Blood Sugar ==========
+  { id: 25, day: 3, dayLabel: "Quarta", date: "22/04/26", cluster: "Cluster 4 High Blood Sugar", type: "winner", title: "Winner Variation: 3D Court Trial", angle: "B&B confronta Ryze (idêntico ao winner)", hookCopy: "\"Hi, I'm mushroom coffee.\" / \"Damn. You're weak coffee.\" (verbatim)", hookVisual: "Tribunal 3D Pixar. B&B é promotor de terno, aponta dedo acusador. Ryze é réu na cadeira, suando, gaguejando. B&B bate a mão na mesa 'culpado!' no punch [00:03].", format: "3D Animated (Winner Variation — Var #5)", speaker: "B&B promotor + Ryze réu", execution: "Copy VERBATIM (237 palavras, 87s). Cadência de interrogatório judicial. Iluminação 'Law & Order'. Sacred Copy Rule. CTA padrão." },
+  { id: 26, day: 3, dayLabel: "Quarta", date: "22/04/26", cluster: "Cluster 4 High Blood Sugar", type: "winner", title: "Winner Variation: 3D Talk Show", angle: "B&B confronta Ryze (idêntico ao winner)", hookCopy: "\"Hi, I'm mushroom coffee.\" / \"Damn. You're weak coffee.\" (verbatim)", hookVisual: "Set de talk show 3D Pixar (tipo Joe Rogan/Howard Stern). Sofás vermelhos, plateia ao fundo aplaudindo. B&B é apresentador. Ryze é convidado desconfortável. B&B joga fora o cartão de entrevista no punch [00:03].", format: "3D Animated (Winner Variation — Var #6)", speaker: "B&B apresentador + Ryze convidado", execution: "Copy VERBATIM (237 palavras, 87s). Cadência de talk show host. Sacred Copy Rule. CTA padrão." },
+  { id: 27, day: 3, dayLabel: "Quarta", date: "22/04/26", cluster: "Cluster 4 High Blood Sugar", type: "fill", title: "ACQ Native Image: O Homem Que Cochilava no Trabalho", angle: "Homem 45+ lutando contra food coma pós-almoço", hookCopy: "\"Aos 46 anos eu peguei o hábito de dormir 15 minutos no carro depois do almoço. Descobri por quê.\"", hookVisual: "Close-up de homem 46 dormindo no volante do carro no estacionamento da empresa, 2pm. Relógio no carro marca 14:15. Café frio no copo.", format: "Long-form Native Image — Format A, Male First-Person Narrator, Direct-to-Product CTA, Medical Shock creative (pill collection + A1c test overlay)", speaker: "Homem 46 (first-person)", execution: "Long-form 1500-3000 palavras. Confissão: food coma todo dia 2pm há 3 anos. Médico tira sangue: A1c 6.1 (pré-diabetes). Descoberta: insulin resistance + testosterone crash (insulina alta destrói T). TMC = Ashwa (cortisol→insulin) + Tongkat (T→metabólico) + Zinc (insulin sensitivity). Transformação: 30 dias sem food coma. CTA padrão." },
+  { id: 28, day: 3, dayLabel: "Quarta", date: "22/04/26", cluster: "Cluster 4 High Blood Sugar", type: "fill", title: "ACQ Native Image: Filha Observando Pai Lutar", angle: "Family member POV (daughter 20s) — pai pré-diabético sem saber", hookCopy: "\"Meu pai dormia no sofá todo domingo depois do almoço. Eu achava que era cansaço. Era pré-diabetes.\"", hookVisual: "Filha 23 anos segurando o resultado de um exame de sangue, olhando com lágrimas. Ao fundo, pai 55 anos dormindo no sofá.", format: "Long-form Native Image — Format A, Young Woman confession, Quiz Funnel CTA (free A1c assessment lead magnet), Emotional Devastation creative", speaker: "Filha 23 (first-person)", execution: "Long-form 1500-3000 palavras. Filha POV — pai sempre cochilando, ignorado por 5 anos. Avô morreu de diabetes aos 62. Medo dela: pai vai repetir. Descoberta: insulin-T axis. Convence pai a testar TMC. CTA = quiz diagnóstico grátis (não é produto, é diagnóstico). CTA padrão." },
+  { id: 29, day: 3, dayLabel: "Quarta", date: "22/04/26", cluster: "Cluster 4 High Blood Sugar", type: "override", title: "Açúcar Cristalizando [OVERRIDE AD #5]", angle: "Sinal que o corpo dá quando está ficando pré-diabético", hookCopy: "\"Esse é o primeiro sinal que seu corpo dá quando você está pré-diabético!\"", hookVisual: "Headline + Close-up de açúcar cristalizado se formando literalmente no sangue (simulação visual)", format: "EGC (MID 60s)", speaker: "Endocrinologista especialista em diabetes/resistência insulínica", execution: "O médico usa a animação de açúcar cristalizando no sangue para explicar como resistência insulínica começa ANOS antes do diagnóstico. Revela que o primeiro sinal não é sede ou xixi — é testosterona baixa (insulina alta destrói testosterona). TMC = dupla ação: melhora insulina E restaura T. CTA padrão." },
+  { id: 30, day: 3, dayLabel: "Quarta", date: "22/04/26", cluster: "Cluster 4 High Blood Sugar", type: "fill", title: "Stop Blaming Coffee for Your 3pm Crash (HS-10)", angle: "Proibição + counterintuitive reframe", hookCopy: "\"Pare de culpar o café pelo seu crash de 3pm. O problema é o sanduíche do almoço.\"", hookVisual: "Speaker segura xícara de café e joga pra fora do frame. Aponta pra um sanduíche ao lado: 'Isso aqui é o vilão real.'", format: "Talking-head + product demo (SHORT 20s, HS-10 Stop doing X)", speaker: "Nutricionista m/40/expert", execution: "Explica que food coma não é circadian rhythm — é spike de insulina pós-carbs que crasheia T e energia. Padrão: insulina alta → T crash → fadiga. TMC = Ashwa (regula insulin/cortisol) + café (sem spike porque L-theanine + zero açúcar). 'Troca o café convencional pelo TMC e o crash some.' CTA padrão." },
+  { id: 31, day: 3, dayLabel: "Quarta", date: "22/04/26", cluster: "Cluster 4 High Blood Sugar", type: "fill", title: "Metformina em Cubas de Gelo (Contrarian Use)", angle: "Metformina usada errado = cenas que abrem loop", hookCopy: "\"Meu pai tem diabetes. A perna dele foi amputada no ano passado. Motivo? Ele estava usando metformina da forma errada o tempo todo.\"", hookVisual: "Homem 40s colocando comprimidos de metformina em forma de cubas de gelo, depois despejando café quente por cima e guardando na geladeira. Expressão solene.", format: "UGC w/ Contrarian Use demo (SHORT 25s, Derick voice-criteria nostalgia example)", speaker: "Homem 40 (first-person, filho de pai diabético)", execution: "Abertura emocional (nostalgia triste). Explica: metformina sozinha não toca em cortisol/T/inflamação. Pais usam metformina, continuam com insulin resistance crescendo. TMC ataca as 3 causas: Ashwa (cortisol), Tongkat (T), Zinc (insulin sensitivity). 'Meu pai não precisava ter perdido a perna.' CTA padrão." },
+  { id: 32, day: 3, dayLabel: "Quarta", date: "22/04/26", cluster: "Cluster 4 High Blood Sugar", type: "fill", title: "Metformin É Ótimo, MAS... (HS-03)", angle: "Contrarian reframe vs standard medication", hookCopy: "\"Metformina é ótima, MAS se ela consertasse pré-diabetes, por que 70% dos usuários progridem pra diabetes tipo 2 em 10 anos?\"", hookVisual: "Speaker segura caixa de metformina na mão, abre, mostra pills, depois abre sachê de TMC ao lado. Contraste visual.", format: "Talking-head + product demo (MID 45s, HS-03 contrarian)", speaker: "Endocrinologista m/50/expert", execution: "Explica que metformina baixa A1c mas não toca em cortisol alto, T baixo, inflamação crônica — as causas raiz. TMC ataca todas 3. Stat: 70% progressão em 10 anos nos pacientes só de metformina. TMC + metformina = resultados superiores. 'TMC não substitui metformina — ELE ATACA A RAIZ.' CTA padrão." },
+  { id: 33, day: 3, dayLabel: "Quarta", date: "22/04/26", cluster: "Cluster 4 High Blood Sugar", type: "fill", title: "Sou Seu Pâncreas (Animated Mascot)", angle: "Pâncreas falante lecturando o dono", hookCopy: "\"Sou seu pâncreas. E eu tô cansado de bombear insulina que você me pede.\"", hookVisual: "Pâncreas 3D Pixar antropomorfizado, suando, olhos cansados, flutuando no ar. Gotas de suor caindo.", format: "3D Animation (MID 45s, Animated Mascot Speaker)", speaker: "Pâncreas antropomorfizado, voz masculina exausta", execution: "Pâncreas explica em primeira pessoa: 'Toda vez que você come carbos refinados + café com açúcar, eu tenho que pagar a conta. E quando eu me canso, sua testosterona cai. E você fica sem tesão. E você fica com belly.' Pede pro dono trocar café e dieta. TMC = 1 café sem spike + Ashwa (me ajuda a regular). CTA padrão." },
+  { id: 34, day: 3, dayLabel: "Quarta", date: "22/04/26", cluster: "Cluster 4 High Blood Sugar", type: "fill", title: "O Primeiro Sinal Não É Sede — É T Baixa (LONG EGC)", angle: "Mecanismo profundo insulin-T axis", hookCopy: "\"O primeiro sinal de pré-diabetes não é sede. Não é xixi. É testosterona baixa.\"", hookVisual: "Speaker em consultório. Diagrama animado mostrando insulin → aromatase conversion → T→E. Split-screen: homem pré-diabético com belly + low T vs homem saudável com A1c normal + T alta.", format: "EGC w/ animated mechanism (LONG 90-120s, HS-13 reframe + HS-05 did-you-know)", speaker: "Endocrinologista m/50/expert", execution: "Deep dive: insulin alta crônica ATIVA aromatase, que converte T em E. Resultado: belly fat + man boobs + fadiga + libido = sintomas de pré-diabetes MUITO antes de 'sede/xixi'. Mainstream ignora insulin-T axis. TMC = 1 café com Tongkat + Zinc + Ashwa resolve os 2 simultâneo. Testimonials. CTA padrão." },
+  { id: 35, day: 3, dayLabel: "Quarta", date: "22/04/26", cluster: "Cluster 4 High Blood Sugar", type: "fill", title: "RTG Video: Progressive Timeline (A1c)", angle: "Jornada do A1c de 6.2 pra 5.4 em 90 dias", hookCopy: "\"Day 1: A1c 6.2 (pré-diabetes). Day 90: A1c 5.4 (normal). Aqui está o que mudei.\"", hookVisual: "Timeline animada mostrando gráfico de A1c caindo de 6.2 → 5.8 → 5.6 → 5.4 em 90 dias. Foto do mesmo homem em cada marco (mais magro, mais alerta, melhor pele).", format: "EGC w/ timeline animation (MID 60s, Retargeting Cat #8 Progressive Timeline)", speaker: "Homem 48 (first-person, real user testimonial)", execution: "Para viewers que viram AD #29 (override) e não converteram. Conta jornada real + mudança única = trocar café da manhã por TMC. A1c caiu progressivamente porque TMC ataca insulin-T axis. Mostra lab test real. CTA padrão." },
+  { id: 36, day: 3, dayLabel: "Quarta", date: "22/04/26", cluster: "Cluster 4 High Blood Sugar", type: "fill", title: "RTG Image: Social Proof Format", angle: "40,000 users social proof (Menerals-style)", hookCopy: "\"40,000 homens reverteram pré-diabetes sem metformina. Aqui está o que eles mudaram.\"", hookVisual: "Grid de 9 fotos de homens 40-60 anos diferentes, todos sorrindo. Overlay central: '40,000 homens'. TMC sachê ao centro.", format: "Static Image — Format B Social Proof (Retargeting)", speaker: "N/A (image only)", execution: "Imagem valida via volume. Sub-headline: '365-day guarantee + 40% off.' Prova social massiva pra retargeting de quem já viu mechanisms e ainda tem objeção. CTA padrão." },
+
+  // ========== QUINTA (B13.4) — Cluster 6 Joint & Knee Pain ==========
+  { id: 37, day: 4, dayLabel: "Quinta", date: "23/04/26", cluster: "Cluster 6 Joint & Knee Pain", type: "winner", title: "Winner Variation: 3D Boxing Ring", angle: "B&B confronta Ryze (idêntico ao winner)", hookCopy: "\"Hi, I'm mushroom coffee.\" / \"Damn. You're weak coffee.\" (verbatim)", hookVisual: "Ringue de boxe 3D Pixar iluminado. B&B no canto com luvas musculoso. Ryze no canto oposto com luvas 3x maiores que ele (proporção ridícula). B&B dá um jab no rosto do Ryze no punch [00:03].", format: "3D Animated (Winner Variation — Var #3)", speaker: "B&B boxeador + Ryze com luvas absurdas", execution: "Copy VERBATIM (237 palavras, 87s). Anunciador do ringue narra os beats. Sacred Copy Rule. CTA padrão." },
+  { id: 38, day: 4, dayLabel: "Quinta", date: "23/04/26", cluster: "Cluster 6 Joint & Knee Pain", type: "winner", title: "Winner Variation: 3D Gym Confrontation", angle: "B&B confronta Ryze (idêntico ao winner)", hookCopy: "\"Hi, I'm mushroom coffee.\" / \"Damn. You're weak coffee.\" (verbatim)", hookVisual: "Academia épica 3D Pixar. B&B musculoso levantando pesos gigantes, suando confiante. Ryze do lado lutando com uma anilha pequena, bracinhos tremendo. B&B bate a barra no chão perto de Ryze no punch [00:03].", format: "3D Animated (Winner Variation — Var #10)", speaker: "B&B atleta + Ryze fraco", execution: "Copy VERBATIM (237 palavras, 87s). Entregue como pep talk de personal trainer dominante. Sacred Copy Rule. CTA padrão." },
+  { id: 39, day: 4, dayLabel: "Quinta", date: "23/04/26", cluster: "Cluster 6 Joint & Knee Pain", type: "fill", title: "ACQ Native Image: O Homem Que Parou de Descer a Escada", angle: "Homem 50+ evitando escadas por dor de joelho", hookCopy: "\"Aos 54 anos eu comecei a pegar o elevador pra subir UM ANDAR. Descobri por quê.\"", hookVisual: "Homem 54 anos parado em frente a escada no escritório, mão no joelho, olhando pro elevador. Colegas passando atrás descendo.", format: "Long-form Native Image — Format A, Male First-Person Narrator, Direct-to-Product CTA, Medical Shock creative (knee X-ray + surgery scene)", speaker: "Homem 54 (first-person)", execution: "Long-form 1500-3000 palavras. Confissão: parou de descer escada, parou de brincar com netos, parou de jogar tênis. Ortopedista fala 'artrite'. Descoberta via outro médico: é cortisol alto crônico destruindo cartilagem + Vit D3 baixa. TMC = Ashwa (cortisol), Chaga (anti-inflammatório), Cordyceps (circulação). Voltou a correr com netos. CTA padrão." },
+  { id: 40, day: 4, dayLabel: "Quinta", date: "23/04/26", cluster: "Cluster 6 Joint & Knee Pain", type: "fill", title: "ACQ Native Image: Young Woman Vê Pai Se Deteriorar", angle: "Age-gap confession — jovem mulher 25 vê pai 58 sofrer", hookCopy: "\"Meu pai tem 58 anos e já não consegue levantar da cadeira sem apoio. Eu tenho 25. E estou começando a sentir algo igual.\"", hookVisual: "Jovem mulher 25 anos segurando mão do pai 58, que tá tentando levantar de uma poltrona. Foto antiga dos dois correndo na parede.", format: "Long-form Native Image — Format A, Young Woman / Age-Gap Confession, Direct-to-Product CTA, Emotional Devastation creative", speaker: "Mulher 25 (first-person, filha defiant)", execution: "Long-form 1500-3000 palavras. Age-gap confession: jovem percebe decline do pai + sente early signs no próprio corpo. Descoberta: inflamação sistêmica começa nos 20s. TMC = protocolo preventivo pra ela + corretivo pro pai. Closing: ambos correndo no parque 6 meses depois. CTA padrão." },
+  { id: 41, day: 4, dayLabel: "Quinta", date: "23/04/26", cluster: "Cluster 6 Joint & Knee Pain", type: "override", title: "Joelho Fazendo Crack [OVERRIDE AD #6]", angle: "Joelhos fazendo 'CRACK'", hookCopy: "\"Se seus joelhos fazem esse barulho quando você levanta, você precisa agir agora.\"", hookVisual: "Headline + Close-up extremo de joelho fazendo crack com amplificação sonora", format: "EGC (SHORT 20-30s)", speaker: "Fisioterapeuta/Ortopedista especialista em articulações", execution: "O médico usa o som amplificado + visual do crack para explicar o que REALMENTE causa o barulho (não é osso quebrando — é inflamação + falta de lubrificação). Conecta à cascata: cortisol alto → inflamação crônica → cartilagem resseca → crack. TMC = anti-inflamatório natural via redução de cortisol. CTA padrão." },
+  { id: 42, day: 4, dayLabel: "Quinta", date: "23/04/26", cluster: "Cluster 6 Joint & Knee Pain", type: "override", title: "Cortisol Derretendo Articulação [OVERRIDE AD #7]", angle: "O que o cortisol faz com as articulações?", hookCopy: "\"Isso é o que o cortisol faz com suas articulações depois dos 40!\"", hookVisual: "Headline + Vídeo de cortisol (como ácido) derretendo/corroendo cartilagem articular e joelhos se deteriorando", format: "EGC Educational (LONG 90-120s)", speaker: "Médico anti-aging especialista em cortisol/hormônios", execution: "O médico usa a animação do cortisol derretendo cartilagem para educar sobre inflamação crônica. Explica como cortisol elevado após 40 anos literalmente 'dissolve' as articulações. Posiciona TMC como cortisol-blocker natural (ashwagandha) que para a destruição articular. CTA padrão." },
+  { id: 43, day: 4, dayLabel: "Quinta", date: "23/04/26", cluster: "Cluster 6 Joint & Knee Pain", type: "override", title: "Dormindo no Gelo [OVERRIDE AD #8]", angle: "Diagnóstico de articulação inflamada através de hábito comum", hookCopy: "\"Essa posição ao dormir revela se suas articulações estão realmente inflamadas!\"", hookVisual: "Speaker literalmente dormindo com joelhos dentro de balde de gelo", format: "UGC Demonstrativo (MID 60s)", speaker: "Homem 50+ que sofria de artrite/dor articular severa", execution: "O cara literalmente dorme com joelhos no gelo enquanto explica como chegou nesse ponto. Conta como descobriu que dormir em posições estranhas = articulação inflamada. Mostra como TMC resolveu a inflamação e ele voltou a dormir normal. 'Se você dorme diferente, suas articulações tão gritando.' CTA padrão." },
+  { id: 44, day: 4, dayLabel: "Quinta", date: "23/04/26", cluster: "Cluster 6 Joint & Knee Pain", type: "override", title: "Cirurgião com Bisturi [OVERRIDE AD #9]", angle: "Medo de cirurgia no joelho", hookCopy: "\"Antes de precisar de cirurgia no joelho, teste isso por 30 dias!\"", hookVisual: "Cirurgião segurando bisturi sobre joelho exposto", format: "EGC (SHORT 20-30s)", speaker: "Cirurgião de joelhos", execution: "O cirurgião de joelhos segurando um bisturi, sobre um joelho exposto, apresenta o anúncio inteiro do início ao fim. Posiciona TMC como última tentativa antes da faca. '30 dias para evitar o que você está vendo aqui.' CTA padrão." },
+  { id: 45, day: 4, dayLabel: "Quinta", date: "23/04/26", cluster: "Cluster 6 Joint & Knee Pain", type: "fill", title: "Parasita Articular (Disgusting POV)", angle: "Disgusting POV — bactéria/inflamação 'comendo' cartilagem", hookCopy: "\"Se você sente esse estalo no joelho, esse bicho metabólico pode estar comendo sua cartilagem agora mesmo.\"", hookVisual: "Close-up nojento 3D de bactérias/inflammation 'criaturas' corroendo cartilagem articular. Câmera mergulha pra dentro do joelho mostrando destruição.", format: "EGC w/ Disgusting POV animation (MID 45s, GAP opportunity 0/82)", speaker: "Ortopedista m/50/expert", execution: "Médico usa visual nojento pra explicar que inflamação crônica = 'parasita metabólico' que destrói cartilagem tão efetivamente quanto parasita biológico. Cortisol alto alimenta essa 'inflamação-parasita'. TMC = Ashwa + Chaga + Cordyceps bloqueiam e reparam. 'Não é bicho — é cortisol. Mas o efeito é igual.' CTA padrão." },
+  { id: 46, day: 4, dayLabel: "Quinta", date: "23/04/26", cluster: "Cluster 6 Joint & Knee Pain", type: "fill", title: "Mockumentary: Nenhuma Funcionou (XN-004 Nail Exodus transfer)", angle: "Cross-niche transfer — 'What works better? Turns out, none'", hookCopy: "\"O que funciona melhor pra dor de joelho — cortisona, ibuprofeno, ou cirurgia? Acontece que, nenhum. Aqui está o que funciona.\"", hookVisual: "Close-ups em sequência rápida: [1] agulha de cortisona, [2] cartela de ibuprofeno, [3] bisturi cirúrgico. Cada item some com efeito 'X vermelho'. Último frame: TMC sachê + xícara.", format: "Mockumentary (MID 45s, HS-03 contrarian + XN-004 transfer)", speaker: "Ortopedista m/50/expert narrando como documentário investigativo", execution: "Mockumentary style — cada 'solução' é apresentada e descartada com evidência (cortisona destrói cartilagem a longo prazo, ibuprofeno causa úlcera, cirurgia 40% recorrência). Final: 'O que funciona é reduzir cortisol que CAUSA a inflamação em primeiro lugar.' TMC entrega isso. CTA padrão." },
+  { id: 47, day: 4, dayLabel: "Quinta", date: "23/04/26", cluster: "Cluster 6 Joint & Knee Pain", type: "fill", title: "RTG Video: Problem-First UGC (Joint Testimony)", angle: "Usuário real testifica dor de joelho destruindo vida", hookCopy: "\"Aos 52 eu parei de jogar futebol com os amigos. Aos 53 voltei. Só uma coisa mudou.\"", hookVisual: "Homem 53 correndo em campo de futebol, passe, chute, gol. Transição pra ele sentado conversando com a câmera.", format: "UGC Testimony (MID 60s, Retargeting Cat #12 Problem-First UGC)", speaker: "Homem 53 real (testimonial)", execution: "Pra viewers que viram override ADs #6-#9 e ainda estão em dúvida. Testemunho real com progresso. '30 dias de TMC — menos dor. 60 dias — voltei a jogar. 90 dias — melhor que aos 45.' Mecanismo rápido (Ashwa + Chaga). CTA padrão." },
+  { id: 48, day: 4, dayLabel: "Quinta", date: "23/04/26", cluster: "Cluster 6 Joint & Knee Pain", type: "fill", title: "RTG Image: Timeline Day 1 → Day 90", angle: "Transformação articular em 90 dias", hookCopy: "\"Day 1: Can't climb stairs. Day 90: Running with my grandkids.\"", hookVisual: "Static dividido em 2. Esquerda (Day 1): homem 55 parado em frente a escada, mão no joelho. Direita (Day 90): same homem correndo com 2 crianças pequenas no parque, sorrindo.", format: "Static Image — Format B Timeline (Retargeting)", speaker: "N/A (image only)", execution: "Timeline legendada: Day 1 (can't climb), Day 14 (no more crack), Day 30 (walking without limp), Day 60 (started jogging), Day 90 (playing with grandkids). TMC centro. CTA padrão." },
+
+  // ========== SEXTA (B13.5) — Cluster 1 Weak Erections ==========
+  { id: 49, day: 5, dayLabel: "Sexta", date: "24/04/26", cluster: "Cluster 1 Weak Erections", type: "winner", title: "Winner Variation: 3D Rap Battle", angle: "B&B confronta Ryze (idêntico ao winner)", hookCopy: "\"Hi, I'm mushroom coffee.\" / \"Damn. You're weak coffee.\" (verbatim)", hookVisual: "Palco de hip-hop underground 3D Pixar. Microfones, plateia ao fundo, iluminação neon roxa/azul. B&B rapper dominante com correntão. Ryze tentando responder mas travando. B&B aponta o microfone como arma no punch [00:03].", format: "3D Animated (Winner Variation — Var #7)", speaker: "B&B rapper + Ryze oponente", execution: "Copy VERBATIM (237 palavras, 87s). Entregue como lines de rap (ritmo forte, pausa nas frases). Sacred Copy Rule. CTA padrão." },
+  { id: 50, day: 5, dayLabel: "Sexta", date: "24/04/26", cluster: "Cluster 1 Weak Erections", type: "winner", title: "Winner Variation: Live-Action Side-by-Side Product Demo", angle: "B&B confronta Ryze (idêntico ao winner)", hookCopy: "\"Hi, I'm mushroom coffee.\" / \"Damn. You're weak coffee.\" (verbatim, em primeira pessoa como comparativo)", hookVisual: "Bancada limpa de estúdio, iluminação profissional. Speaker real (homem 40s autoritativo) segurando TMC na mão direita (confiante) e Ryze na esquerda (com nojo). Speaker joga Ryze pra fora do frame no punch [00:03].", format: "Live-Action Product Demo (Winner Variation — Var #8)", speaker: "Homem 40 real, autoritativo", execution: "Copy VERBATIM (237 palavras, 87s). Entregue em primeira pessoa como comparativo de produto. Clean product shot. Sacred Copy Rule. CTA padrão." },
+  { id: 51, day: 5, dayLabel: "Sexta", date: "24/04/26", cluster: "Cluster 1 Weak Erections", type: "fill", title: "ACQ Native Image: Young Woman Confession", angle: "Young woman age-gap confession — relação com homem mais velho", hookCopy: "\"Eu tenho 26 anos e estou namorando um cara de 52. Ele me disse isso no segundo encontro, e eu fiquei chocada.\"", hookVisual: "Close-up de mão jovem (26) sobre peito masculino mais velho (52). Anel de casamento em dedo do cara no fundo desfocado.", format: "Long-form Native Image — Format A, Young Woman / Age-Gap Confession, Direct-to-Product CTA, Sexual Curiosity creative", speaker: "Mulher 26 (first-person, defiant/confessional)", execution: "Long-form 1500-3000 palavras. Age-gap defiant confession: ela expected comum perder potência, mas o cara confessou que AOS 52 tem morning wood todo dia + energia de 20s. Revelação: TMC há 6 meses. Ela: 'Decidi nunca mais voltar pra homens da minha idade que ignoram saúde hormonal.' Performance = payoff. CTA padrão." },
+  { id: 52, day: 5, dayLabel: "Sexta", date: "24/04/26", cluster: "Cluster 1 Weak Erections", type: "fill", title: "ACQ Native Image: Esposa Vê Marido Voltar", angle: "Wife perspective — marido recuperou o que tinham perdido", hookCopy: "\"Meu marido me abraçou por trás na cozinha semana passada. Faz 4 anos que ele não fazia isso.\"", hookVisual: "Mulher 48 anos na cozinha, sorrindo, preparando jantar. Mão masculina (marido) aparece por trás abraçando sua cintura.", format: "Long-form Native Image — Format A, Wife/Partner Perspective, Direct-to-Product CTA, Emotional Devastation creative (wedding ring removed → replaced)", speaker: "Esposa 48 (first-person)", execution: "Long-form 1500-3000 palavras. Wife POV — marido perdeu libido progressivamente 3 anos. Ela achava que era crise de meia-idade ou ela. Descoberta: T crash + NO comprometido. TMC restaurou morning wood → libido → iniciativa. Detalhe específico: 'Ele voltou a me abraçar na cozinha.' CTA padrão." },
+  { id: 53, day: 5, dayLabel: "Sexta", date: "24/04/26", cluster: "Cluster 1 Weak Erections", type: "override", title: "Morning Wood Split-Screen [OVERRIDE AD #10]", angle: "Morning Wood como Alerta", hookCopy: "\"Quando foi a última vez que você acordou duro? Se não lembra — temos um problema!\"", hookVisual: "Split-screen: homem aos 25 acordando com a 'ferramenta dura' vs. aos 45 acordando com a 'ferramenta adormecida'", format: "EGC (SHORT 20-30s)", speaker: "Urologista especialista em saúde sexual masculina", execution: "O médico usa o split-screen (25 anos vs 45 anos) para explicar que morning wood é o 'check engine light' da masculinidade. Revela que ausência de ereção matinal = testosterona baixa + óxido nítrico comprometido. Não é idade — é hormonal. TMC = restaura ambos (T + NO via L-theanine + ingredientes vasodilatadores). CTA padrão." },
+  { id: 54, day: 5, dayLabel: "Sexta", date: "24/04/26", cluster: "Cluster 1 Weak Erections", type: "fill", title: "Sou Seu Baseball Bat (Animated Mascot)", angle: "Baseball bat falante — voice-criteria canônico favorito", hookCopy: "\"Sou seu baseball bat. E aqui está o motivo pelo qual eu venho tendo 'preguiça' de ficar duro, desde que fizemos 40 anos.\"", hookVisual: "Baseball bat 3D Pixar antropomorfizado com olhos e boca, meio encurvado/mole. Expressão de cansaço. Iluminação estilo 'quarto de casal'.", format: "3D Animation (SHORT 25s, Animated Mascot Speaker — Derick voice-criteria canonical example)", speaker: "Baseball bat antropomorfizado, voz masculina cansada", execution: "Hook = voice-criteria example verbatim. Bat explica em primeira pessoa: 'Quando testosterona cai, eu não recebo mais o sinal. Quando óxido nítrico cai, eu não consigo encher.' Lista o que precisa (T + NO + zinc). Pede pro dono tomar TMC. 'Me deixe forte de novo.' CTA padrão." },
+  { id: 55, day: 5, dayLabel: "Sexta", date: "24/04/26", cluster: "Cluster 1 Weak Erections", type: "fill", title: "Blue Chew, Shockwave, TRT? Nenhum (Mockumentary HS-03 + XN-004)", angle: "Cross-niche transfer — Nail Exodus format applied to ED alternatives", hookCopy: "\"Blue chew. Shockwave. TRT. O que funciona pra ereções fracas? Acontece que, nenhum. Aqui está o que realmente funciona.\"", hookVisual: "Close-ups sequenciais: [1] Blue chew gummies, [2] máquina de shockwave, [3] seringa de TRT. Cada item some com 'X vermelho' overlay. Último frame: TMC.", format: "Mockumentary (MID 45s, HS-03 + XN-004 from Nail Exodus 62d winner)", speaker: "Urologista m/50/expert narrando investigativamente", execution: "Cada 'solução' apresentada + descartada: blue chew não restaura morning wood (só força 1 ereção por dose), shockwave 50% recorrência 12 meses, TRT shutdown do eixo HPG + aromatase worse. 'O que funciona = restaurar T endógeno + NO. Em 1 café.' TMC entrega. CTA padrão." },
+  { id: 56, day: 5, dayLabel: "Sexta", date: "24/04/26", cluster: "Cluster 1 Weak Erections", type: "fill", title: "A Lot of People Doubted This Stanford Endocrinologist (HS-07)", angle: "Authority + counterintuitive claim (Stanford/KilgourMD transfer)", hookCopy: "\"Muita gente duvidou desse endocrinologista de Stanford quando ele disse que a forma mais rápida de recuperar ereções fortes não tinha NADA a ver com o pênis.\"", hookVisual: "Split-screen: dermatologista/endocrinologista falando à câmera + close-up de artéria sanguínea/blood flow animation.", format: "Split-screen EGC (MID 45s, HS-07 authority structure + XN-008 Stanford transfer)", speaker: "Endocrinologista m/50/expert (autoridade Stanford-coded)", execution: "Revela: ereção depende de NO (nitric oxide) + T (testosterona) + blood flow — NÃO é problema 'do pênis', é problema sistêmico. Maioria dos homens tá focando só no pênis (pílulas, devices). Solução = sistema: Cordyceps (NO), Tongkat (T), Shilajit (blood flow). TMC entrega todos 3. CTA padrão." },
+  { id: 57, day: 5, dayLabel: "Sexta", date: "24/04/26", cluster: "Cluster 1 Weak Erections", type: "fill", title: "Parasita Prostático (Disgusting POV)", angle: "Disgusting POV — inflamação prostática causando ED", hookCopy: "\"Jato fraco depois dos 40? Esse parasita prostático pode estar inflamando sua próstata e destruindo suas ereções nesse exato momento.\"", hookVisual: "Close-up nojento 3D de 'parasita metabólico' dentro da próstata, inflamando. Câmera mergulha + anima a compressão do nervo que controla ereção.", format: "EGC w/ Disgusting POV (MID 45s, GAP opportunity 0/82 + voice-criteria favorite example)", speaker: "Urologista m/50/expert", execution: "Hook = voice-criteria exemplo canônico aplicado. Urologista explica que inflamação prostática (não parasita literal, mas efeito igual) comprime nervo pudendo → weak erections + jato fraco. Cortisol alto + DHT elevado causam essa inflamação. TMC = Ashwa (cortisol) + Zinc (DHT control) + Chaga (inflammation). 'Não é parasita — mas o efeito é o mesmo.' CTA padrão." },
+  { id: 58, day: 5, dayLabel: "Sexta", date: "24/04/26", cluster: "Cluster 1 Weak Erections", type: "fill", title: "Morning Wood É o Check Engine Light da Masculinidade (LONG EGC)", angle: "Mecanismo educacional profundo T + NO axis", hookCopy: "\"Morning wood é o 'check engine light' da sua masculinidade. Quando some, seu sistema tá quebrado — e os blue pills não consertam.\"", hookVisual: "Speaker em consultório. Diagrama animado mostrando eixo T→LH→Leydig cells + NO→vasodilation cascade. Split-screen: homem 25 com morning wood (system green) vs homem 45 sem (system red, warning lights).", format: "EGC w/ animated mechanism (LONG 90-120s, HS-12 reframe)", speaker: "Urologista m/50/expert", execution: "Deep dive: morning wood = sign que T + NO + circulation tão funcionando. Perda de morning wood = DIAGNÓSTICO de sistema quebrado, muito antes de 'can't stay hard'. Blue pills só forçam NO pontual, não restauram T. TMC restaura T (Tongkat+Shilajit+Zinc) + NO (Cordyceps+L-theanine) sistemicamente. CTA padrão." },
+  { id: 59, day: 5, dayLabel: "Sexta", date: "24/04/26", cluster: "Cluster 1 Weak Erections", type: "fill", title: "RTG Video: Objection-Response 'Will This Work If Blue Pills Didn't?'", angle: "Respondendo objeção comum pós-engagement", hookCopy: "\"Muitos comentam: 'Blue pills nem funcionam comigo. Por que TMC funcionaria?' Aqui está a diferença.\"", hookVisual: "Speaker olhando pra câmera, ao fundo texto overlay de comentário real do viewer (Instagram/Facebook style) com essa pergunta. Speaker segura blue pill e TMC sachê lado a lado.", format: "EGC comment-reply (MID 45s, Retargeting Cat #13 Objection-Response)", speaker: "Urologista m/50/expert", execution: "Para viewers que viram override AD #10 ou outros ED ads e comentaram ceticismo. Explica: blue pills forçam NO pontual SEM restaurar T. Se T tá baixa, NO pontual não resolve (nenhum sinal chega). TMC restaura T endógena + NO sistêmica → morning wood volta → libido volta → erections fortes voltam. 'Se blue pills não funcionaram com você, é porque o problema é MAIS FUNDO que eles tocam.' CTA padrão." },
+  { id: 60, day: 5, dayLabel: "Sexta", date: "24/04/26", cluster: "Cluster 1 Weak Erections", type: "fill", title: "RTG Image: Bold Static — Wedding Ring Shock", angle: "Shock sexual curiosity static pra retargeting", hookCopy: "\"Morning wood some. Casamento some. 40% off antes que seja tarde.\"", hookVisual: "Close-up de aliança de casamento no travesseiro vazio (lado do marido vazio). Cama desarrumada. Aliança refletindo luz da manhã.", format: "Static Image — Format B Bold Static (Retargeting)", speaker: "N/A (image only)", execution: "Shock image com emotional pain point direto (casamento se deteriorando pela perda sexual). Headline curta e dura. CTA: 40% off + estoque + garantia 365d. Pra retargeting de viewers que entenderam mecanismo mas ainda estão em cima do muro. CTA padrão." },
+];
+
+// ============ STATE MANAGEMENT ============
+const STORAGE_KEY = 'b13-briefing-review';
+let state = loadState();
+let currentDay = 1;
+let currentFilter = 'all';
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch (e) {
+    return {};
+  }
+}
+function saveState() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  updateStats();
+  renderDayTabs();
+}
+
+// ============ DAY TAB RENDERING ============
+const DAYS_META = [
+  { day: 1, label: "Segunda", date: "20/04", cluster: "C3 Cognitive Decline" },
+  { day: 2, label: "Terça", date: "21/04", cluster: "C4 Belly Fat / Man Boobs" },
+  { day: 3, label: "Quarta", date: "22/04", cluster: "C4 High Blood Sugar" },
+  { day: 4, label: "Quinta", date: "23/04", cluster: "C6 Joint & Knee Pain" },
+  { day: 5, label: "Sexta", date: "24/04", cluster: "C1 Weak Erections" },
+];
+
+function renderDayTabs() {
+  const container = document.getElementById('day-tabs');
+  container.innerHTML = '';
+  DAYS_META.forEach(d => {
+    const dayAds = ADS.filter(a => a.day === d.day);
+    let approved = 0, rejected = 0, commented = 0;
+    dayAds.forEach(ad => {
+      const s = state[ad.id] || {};
+      if (s.status === 'approved') approved++;
+      if (s.status === 'rejected') rejected++;
+      if (s.comment && s.comment.trim() !== '') commented++;
+    });
+
+    const tab = document.createElement('div');
+    tab.className = 'day-tab' + (currentDay === d.day ? ' active' : '');
+    tab.dataset.day = d.day;
+    tab.innerHTML = `
+      <div class="day-label">${d.label}</div>
+      <div class="day-date">B13.${d.day} · ${d.date}</div>
+      <div class="day-cluster">${escapeHtml(d.cluster)}</div>
+      <div class="day-progress">
+        ${approved > 0 ? `<span class="progress-chip chip-approved">✓ ${approved}</span>` : ''}
+        ${rejected > 0 ? `<span class="progress-chip chip-rejected">✗ ${rejected}</span>` : ''}
+        ${commented > 0 ? `<span class="progress-chip chip-commented">💬 ${commented}</span>` : ''}
+        ${approved === 0 && rejected === 0 && commented === 0 ? `<span class="progress-chip" style="opacity: 0.5">12 ads</span>` : ''}
+      </div>
+    `;
+    tab.addEventListener('click', () => {
+      currentDay = d.day;
+      renderDayTabs();
+      renderAds();
+      window.scrollTo({ top: document.querySelector('.container').offsetTop - 80, behavior: 'smooth' });
+    });
+    container.appendChild(tab);
+  });
+}
+
+// ============ AD RENDERING ============
+function matchesFilter(ad) {
+  const s = state[ad.id] || {};
+  switch (currentFilter) {
+    case 'all': return true;
+    case 'pending': return !s.status;
+    case 'approved': return s.status === 'approved';
+    case 'rejected': return s.status === 'rejected';
+    case 'commented': return s.comment && s.comment.trim() !== '';
+    case 'override': return ad.type === 'override';
+    case 'winner': return ad.type === 'winner';
+  }
+  return true;
+}
+
+function renderAds() {
+  const container = document.getElementById('ads-container');
+  container.innerHTML = '';
+
+  const dayAds = ADS.filter(a => a.day === currentDay);
+  const meta = DAYS_META.find(d => d.day === currentDay);
+
+  // Day header
+  const header = document.createElement('div');
+  header.className = 'day-header';
+  header.innerHTML = `
+    <h2>${meta.label} — B13.${meta.day}</h2>
+    <span class="cluster-tag">${escapeHtml(dayAds[0].cluster)}</span>
+    <span class="date">${escapeHtml(dayAds[0].date)}</span>
+  `;
+  container.appendChild(header);
+
+  const filteredAds = dayAds.filter(ad => matchesFilter(ad));
+
+  if (filteredAds.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'empty-state';
+    empty.innerHTML = `
+      <p style="font-size: 32px; margin-bottom: 12px;">∅</p>
+      <p>Nenhum ad ${currentFilter === 'all' ? '' : 'neste filtro'} pro dia selecionado.</p>
+      <p style="font-size: 13px; margin-top: 8px;">Clique em "Todos" pra ver todos os ${dayAds.length} ads deste dia.</p>
+    `;
+    container.appendChild(empty);
+    return;
+  }
+
+  filteredAds.forEach(ad => {
+    const card = renderCard(ad);
+    container.appendChild(card);
+  });
+}
+
+function renderCard(ad) {
+  const s = state[ad.id] || {};
+  const card = document.createElement('div');
+  card.className = 'ad-card';
+  card.id = `ad-${ad.id}`;
+  if (s.status === 'approved') card.classList.add('approved');
+  if (s.status === 'rejected') card.classList.add('rejected');
+  if (s.comment && s.comment.trim() !== '') card.classList.add('has-comment');
+
+  const typeBadge = ad.type === 'override'
+    ? '<span class="badge override">Override</span>'
+    : ad.type === 'winner'
+    ? '<span class="badge winner">Winner Var</span>'
+    : '<span class="badge fill">Fill</span>';
+
+  card.innerHTML = `
+    <div class="ad-header">
+      <span class="ad-id">AD #${ad.id}</span>
+      <span class="ad-title">${escapeHtml(ad.title)}</span>
+      <div class="ad-badges">${typeBadge}</div>
+    </div>
+    <div class="ad-fields">
+      <div class="ad-field"><span class="field-label">Ângulo</span><span class="field-value">${escapeHtml(ad.angle)}</span></div>
+      <div class="ad-field"><span class="field-label">Copy Hook</span><span class="field-value hook">${escapeHtml(ad.hookCopy)}</span></div>
+      <div class="ad-field"><span class="field-label">Visual Hook</span><span class="field-value">${escapeHtml(ad.hookVisual)}</span></div>
+      <div class="ad-field"><span class="field-label">Formato</span><span class="field-value">${escapeHtml(ad.format)}</span></div>
+      <div class="ad-field"><span class="field-label">Speaker</span><span class="field-value">${escapeHtml(ad.speaker)}</span></div>
+      <div class="ad-field"><span class="field-label">Execução</span><span class="field-value execution">${escapeHtml(ad.execution)}</span></div>
+    </div>
+    <div class="action-bar">
+      <button class="action-btn approve ${s.status === 'approved' ? 'active' : ''}" data-id="${ad.id}" data-action="approve">✓ Aprovar</button>
+      <button class="action-btn reject ${s.status === 'rejected' ? 'active' : ''}" data-id="${ad.id}" data-action="reject">✗ Rejeitar</button>
+      <button class="action-btn comment ${s.comment && s.comment.trim() !== '' ? 'active' : ''}" data-id="${ad.id}" data-action="toggle-comment">💬 Comentário${s.comment && s.comment.trim() !== '' ? ' ✓' : ''}</button>
+      ${s.status ? `<span class="status-indicator ${s.status}">${s.status === 'approved' ? '✓ Aprovado' : '✗ Rejeitado'}</span>` : ''}
+      <button class="action-btn reset" data-id="${ad.id}" data-action="reset">Limpar</button>
+    </div>
+    <div class="comment-box ${s.comment ? 'visible' : ''}" id="comment-box-${ad.id}">
+      <textarea placeholder="O que precisa ser corrigido? Seja específico (hook copy, visual, mecanismo, etc.)" data-id="${ad.id}">${escapeHtml(s.comment || '')}</textarea>
+      <div class="comment-hint">Pressione fora do campo pra salvar automaticamente.</div>
+    </div>
+  `;
+
+  card.querySelectorAll('.action-btn').forEach(btn => {
+    btn.addEventListener('click', handleAction);
+  });
+  const textarea = card.querySelector('textarea');
+  textarea.addEventListener('blur', (e) => {
+    const id = parseInt(e.target.dataset.id);
+    if (!state[id]) state[id] = {};
+    const val = e.target.value.trim();
+    if (val) {
+      state[id].comment = val;
+    } else {
+      delete state[id].comment;
+    }
+    saveState();
+    updateCardVisual(id);
+  });
+
+  return card;
+}
+
+function handleAction(e) {
+  const id = parseInt(e.currentTarget.dataset.id);
+  const action = e.currentTarget.dataset.action;
+  if (!state[id]) state[id] = {};
+
+  switch (action) {
+    case 'approve':
+      state[id].status = state[id].status === 'approved' ? null : 'approved';
+      if (state[id].status === null) delete state[id].status;
+      break;
+    case 'reject':
+      state[id].status = state[id].status === 'rejected' ? null : 'rejected';
+      if (state[id].status === null) delete state[id].status;
+      break;
+    case 'toggle-comment':
+      const box = document.getElementById(`comment-box-${id}`);
+      box.classList.toggle('visible');
+      if (box.classList.contains('visible')) {
+        setTimeout(() => box.querySelector('textarea').focus(), 50);
+      }
+      return;
+    case 'reset':
+      delete state[id];
+      break;
+  }
+
+  saveState();
+  updateCardVisual(id);
+}
+
+function updateCardVisual(id) {
+  const card = document.getElementById(`ad-${id}`);
+  if (!card) return;
+  const s = state[id] || {};
+  card.classList.remove('approved', 'rejected', 'has-comment');
+  if (s.status === 'approved') card.classList.add('approved');
+  if (s.status === 'rejected') card.classList.add('rejected');
+  if (s.comment && s.comment.trim() !== '') card.classList.add('has-comment');
+
+  const approveBtn = card.querySelector('[data-action="approve"]');
+  const rejectBtn = card.querySelector('[data-action="reject"]');
+  const commentBtn = card.querySelector('[data-action="toggle-comment"]');
+  approveBtn.classList.toggle('active', s.status === 'approved');
+  rejectBtn.classList.toggle('active', s.status === 'rejected');
+  const hasComment = !!(s.comment && s.comment.trim() !== '');
+  commentBtn.classList.toggle('active', hasComment);
+  commentBtn.innerHTML = `💬 Comentário${hasComment ? ' ✓' : ''}`;
+
+  let statusEl = card.querySelector('.status-indicator');
+  if (s.status && !statusEl) {
+    const resetBtn = card.querySelector('[data-action="reset"]');
+    const span = document.createElement('span');
+    span.className = `status-indicator ${s.status}`;
+    span.textContent = s.status === 'approved' ? '✓ Aprovado' : '✗ Rejeitado';
+    resetBtn.before(span);
+  } else if (!s.status && statusEl) {
+    statusEl.remove();
+  } else if (statusEl) {
+    statusEl.className = `status-indicator ${s.status}`;
+    statusEl.textContent = s.status === 'approved' ? '✓ Aprovado' : '✗ Rejeitado';
+  }
+
+  // Re-render if the card no longer matches filter
+  if (!matchesFilter(ADS.find(a => a.id === id))) {
+    setTimeout(() => renderAds(), 150);
+  }
+}
+
+function updateStats() {
+  let approved = 0, rejected = 0, commented = 0, pending = 0;
+  ADS.forEach(ad => {
+    const s = state[ad.id] || {};
+    if (s.status === 'approved') approved++;
+    else if (s.status === 'rejected') rejected++;
+    else pending++;
+    if (s.comment && s.comment.trim() !== '') commented++;
+  });
+  document.getElementById('count-approved').textContent = approved;
+  document.getElementById('count-rejected').textContent = rejected;
+  document.getElementById('count-commented').textContent = commented;
+  document.getElementById('count-pending').textContent = pending;
+
+  const reviewed = approved + rejected;
+  document.getElementById('bottom-summary').textContent = `${reviewed} de 60 revisados · ${commented} com comentário`;
+
+  document.getElementById('progress-approved').style.width = (approved / 60 * 100) + '%';
+  document.getElementById('progress-rejected').style.width = (rejected / 60 * 100) + '%';
+}
+
+// ============ FILTERS ============
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentFilter = btn.dataset.filter;
+    renderAds();
+  });
+});
+
+// ============ EXPORT ============
+function generateMarkdown() {
+  let approved = [], rejected = [], commented = [], pending = [];
+  ADS.forEach(ad => {
+    const s = state[ad.id] || {};
+    const entry = { ad, state: s };
+    if (s.status === 'approved') approved.push(entry);
+    else if (s.status === 'rejected') rejected.push(entry);
+    else pending.push(entry);
+    if (s.comment && s.comment.trim() !== '') commented.push(entry);
+  });
+
+  const today = new Date().toISOString().split('T')[0];
+  let md = `# Review Feedback — Batch B13 / Week 2026-W17\n`;
+  md += `**Gerado em:** ${today}\n`;
+  md += `**Status:** ${approved.length} aprovados · ${rejected.length} rejeitados · ${commented.length} com comentário · ${pending.length} pendentes\n\n`;
+  md += `---\n\n`;
+
+  if (rejected.length > 0) {
+    md += `## ✗ REJEITADOS (${rejected.length})\n\nAds que precisam ser refeitos ou removidos:\n\n`;
+    rejected.forEach(({ ad, state: s }) => {
+      md += `### AD #${ad.id} — ${ad.title}\n`;
+      md += `**Dia:** ${ad.dayLabel} (B13.${ad.day}) · **Tipo:** ${ad.type}\n`;
+      md += `**Copy Hook:** ${ad.hookCopy}\n`;
+      if (s.comment && s.comment.trim() !== '') md += `**💬 Comentário:** ${s.comment}\n`;
+      md += `\n`;
+    });
+    md += `---\n\n`;
+  }
+
+  if (commented.filter(e => e.state.status !== 'rejected').length > 0) {
+    md += `## 💬 COM COMENTÁRIO (aprovados + pendentes com feedback)\n\n`;
+    commented.filter(e => e.state.status !== 'rejected').forEach(({ ad, state: s }) => {
+      md += `### AD #${ad.id} — ${ad.title}\n`;
+      md += `**Dia:** ${ad.dayLabel} (B13.${ad.day}) · **Status:** ${s.status || 'pendente'}\n`;
+      md += `**Copy Hook:** ${ad.hookCopy}\n`;
+      md += `**💬 Comentário:** ${s.comment}\n\n`;
+    });
+    md += `---\n\n`;
+  }
+
+  if (approved.length > 0) {
+    md += `## ✓ APROVADOS (${approved.length})\n\n`;
+    approved.forEach(({ ad }) => {
+      md += `- AD #${ad.id} — ${ad.title} (${ad.dayLabel})\n`;
+    });
+    md += `\n---\n\n`;
+  }
+
+  if (pending.length > 0) {
+    md += `## ⏳ PENDENTES (${pending.length})\n\n`;
+    pending.forEach(({ ad }) => {
+      md += `- AD #${ad.id} — ${ad.title} (${ad.dayLabel})\n`;
+    });
+    md += `\n`;
+  }
+
+  return md;
+}
+
+function exportMarkdown() {
+  const md = generateMarkdown();
+  const today = new Date().toISOString().split('T')[0];
+  const blob = new Blob([md], { type: 'text/markdown' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `b13-review-feedback-${today}.md`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+async function copyFeedback() {
+  const md = generateMarkdown();
+  try {
+    await navigator.clipboard.writeText(md);
+    alert('✓ Feedback copiado pro clipboard!');
+  } catch (e) {
+    alert('Erro ao copiar. Tenta exportar .md.');
+  }
+}
+
+function resetAll() {
+  if (!confirm('Isso vai apagar TODAS as aprovações, rejeições e comentários. Confirma?')) return;
+  state = {};
+  localStorage.removeItem(STORAGE_KEY);
+  renderDayTabs();
+  renderAds();
+  updateStats();
+}
+
+// ============ INITIAL RENDER ============
+renderDayTabs();
+renderAds();
+updateStats();
+</script>
+
+</body>
+</html>
